@@ -66,14 +66,72 @@ Select covariates that you think best represent the "true" model predicting whet
 
 ```{r}
 # Select covariates that represent the "true" model for selection, fit model
+postTreat_var_indices <- 123:174
+outcome_var_components <- c("student_vote", "student_meeting", "student_button",
+                            "student_money",
+                            "student_communicate", "student_demonstrate",
+                            "student_community",
+                            "student_other")
+ypsps_preTreat <- ypsps %>% select(-postTreat_var_indices) %>%  select(-outcome_var_components)
+
+#LL Note: just went w/ a list of 10 for now, but we can consider expanding it if we'd like!
+true_covars <- c('student_PubAff', 'student_Newspaper', 'student_FamTalk', 
+                 'student_GovtOpinion', 'student_Govt4All', 
+                 'parent_Vote', 'parent_Rally', 'parent_PolClub', 
+                 'parent_CivicOrg', 'parent_HHInc')
+
+#true_covars <- c('student_PubAff', 'student_Newspaper', 'student_Radio', 'student_TV', 
+#                 'student_Magazine', 'student_FamTalk', 'student_AdultTalk',
+#                 "student_FrTalk", 'student_GovtOpinion', 'student_TrGovt',
+#                 'student_GovtSmart',
+#                 'student_Govt4All', 'student_Govern', 
+#                 'student_FDR', 'student_Knowledge', 'student_SchOfficer',
+#                 'parent_Newspaper', 'parent_Radio', 'parent_TV', 'parent_Magazine',
+#                 'parent_StrOpinion','parent_Vote', 'parent_Rally',
+#                 'parent_OthAct', 'parent_PolClub', 'parent_Button', 'parent_Money', 
+#                 'parent_GovtOpinion', 'parent_TrGovt', 'parent_GovtSmart',
+#                 "parent_Govt4All",
+#                 'parent_CivicOrg', 'parent_CLOrg', 'parent_HHInc')
+
+ypsps_true <- ypsps %>% select(true_covars, college, student_ppnscal) %>% drop_na()
+
+#create formula to pass into matchIt function 
+ps_formula <- as.formula(
+    paste("college", paste(true_covars, collapse = " + "), sep = " ~ ")
+)
+
+#nearest-neighbor matching
+match_out_NN <- matchit(ps_formula, data = ypsps_true, method = 'nearest', estimand = 'ATT')
+NN_summary <- summary(match_out_NN)
+NN_summary
+
+#fit data and estimate ATT
+match_data_NN <- match.data(match_out_NN)
+lm_formula <- as.formula(
+    paste("student_ppnscal",  paste('college +', paste(true_covars, collapse = " + ")), 
+          sep = " ~ ")
+)
+
+fit_NN <- lm(lm_formula, data = match_data_NN, weights = weights)
+
+summary(fit_NN)
+
+
 
 # Plot the balance for the top 10 covariates
+# <- data.frame(NN_summary$sum.matched)
+#NN_df <- tibble::rownames_to_column(NN_df, "covars")
+#NN_df <- NN_df %>% mutate(abs_mean_diff = abs(NN_df$Std..Mean.Diff.))  
+#arrange(NN_df, abs_mean_diff)
+
+plot(summary(match_out_NN), var.order = 'unmatched', threshold = .1)
+
 
 # Report the overall balance and the proportion of covariates that meet the balance threshold
 ```
+At least for these ten variables, it appears that the overall balance is worse post-matching on each of the ten covariates chosen. Only one out of the ten covariates meetes the balance threshhold here. 
 
 ## Simulations
-
 Henderson/Chatfield argue that an improperly specified propensity score model can actually \textit{increase} the bias of the estimate. To demonstrate this, they simulate 800,000 different propensity score models by choosing different permutations of covariates. To investigate their claim, do the following:
 
 \begin{itemize}
@@ -85,14 +143,73 @@ Henderson/Chatfield argue that an improperly specified propensity score model ca
 
 \textbf{Note: There are lots of post-treatment covariates in this dataset (about 50!)! You need to be careful not to include these in the pre-treatment balancing. Many of you are probably used to selecting or dropping columns manually, or positionally. However, you may not always have a convenient arrangement of columns, nor is it fun to type out 50 different column names. Instead see if you can use dplyr 1.0.0 functions to programatically drop post-treatment variables (\href{https://www.tidyverse.org/blog/2020/03/dplyr-1-0-0-select-rename-relocate/}{here} is a useful tutorial).}
 
-```{r}
-# Remove post-treatment covariates
+```{r message=FALSE}
+# Remove treatment and interview ID from the pre-treatment variable dataframe and remove NAs
+df_covars <- ypsps_preTreat %>% select(-c("interviewid", 'student_ppnscal', 'college')) %>%  drop_na()
 
-# Randomly select features
+#Remove NAs from pre-treatment variable dataframe
+all_data <-ypsps_preTreat %>% drop_na()
 
-# Simulate random selection of features 10k+ times
+set.seed(24)
 
-# Fit p-score models and save ATTs, proportion of balanced covariates, and mean percent balance improvement
+n_sims <- 1000 #LL note on 3/29: just doing 1000 for now because it always breaks at some point at 10k 
+#but haven't been able to debug yet
+ATT <- c()
+percent_improvement <- c()
+beats_threshold <- c()
+treatment = 'college'
+outcome = "student_ppnscal"
+
+for(sim in 1:n_sims){
+    number_of_covars <- sample(1:ncol(df_covars), 1)
+    #print(paste("covar number:", number_of_covars))
+    vars_index <- sample(1:ncol(df_covars), number_of_covars)
+    #print(paste("vars index:", vars_index))
+    sample_covars <- df_covars %>% select(vars_index)
+    #print(paste("samplecols:", ncol(sample_covars)))
+    covar_names <- colnames(sample_covars)
+
+    ps_formula <- as.formula(
+        paste(treatment, paste(covar_names, collapse = " + "), sep = " ~ "))
+
+    match_out_NN <- matchit(ps_formula, data = all_data, method = 'nearest', 
+                        estimand = 'ATT')
+    
+    NN_summary <- summary(match_out_NN)
+    
+    #calculate ATT
+    match_data_NN <- match.data(match_out_NN)
+    lm_formula <- as.formula(
+        paste(outcome,  paste(treatment, paste(covar_names, collapse = " + "), sep = " + "), 
+            sep = " ~ "))
+    
+    fit_NN <- lm(lm_formula, data = match_data_NN, weights = weights)
+    lm_NN <- summary(fit_NN)
+    ATT_NN <- lm_NN$coefficients[treatment, "Estimate"]
+
+    ATT <- append(ATT, ATT_NN)
+
+    #calculate mean percent improvement
+    reduction_df <- as.data.frame.matrix(NN_summary$reduction)
+    reduction_mean <- mean(reduction_df$`Std. Mean Diff.`)
+    percent_improvement <- append(percent_improvement, reduction_mean)
+
+    #calculate proportion that passed 0.1 threshold
+    thresh_count = 0
+    matched_df <- as.data.frame.matrix(NN_summary$sum.matched)
+    for(val in matched_df$`Std. Mean Diff.`){
+        if(abs(val) <= 0.1){
+        thresh_count <- thresh_count + 1}
+    }
+    thresh_prop <- (thresh_count / nrow(matched_df))*100
+    
+    beats_threshold <- append(beats_threshold, thresh_prop)
+        
+    }
+    
+    
+
+
 
 # Plot ATT v. proportion
 
@@ -122,7 +239,11 @@ Henderson/Chatfield propose using genetic matching to learn the best weights for
 
 # Randomly select features
 
+
+
+
 # Simulate random selection of features 10k+ times
+
 
 # Fit  models and save ATTs, proportion of balanced covariates, and mean percent balance improvement
 
