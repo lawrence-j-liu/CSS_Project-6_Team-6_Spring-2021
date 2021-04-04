@@ -103,13 +103,15 @@ Select covariates that you think best represent the "true" model predicting whet
 
 ```{r}
 # Select covariates that represent the "true" model for selection, fit model
-postTreat_var_indices <- 123:174
+ypsps <- ypsps %>% select(-college_random) #remove random Bernoulli from Section 3
+
+postTreat_var_indices <- 123:174 #variables that contain 1983
 outcome_var_components <- c("student_vote", "student_meeting", "student_button",
                             "student_money",
                             "student_communicate", "student_demonstrate",
                             "student_community",
                             "student_other")
-ypsps_preTreat <- ypsps %>% select(-postTreat_var_indices) %>%  select(-outcome_var_components)
+ypsps_preTreat <- ypsps %>% select(-postTreat_var_indices) %>%  select(-outcome_var_components) 
 
 #LL Note: just went w/ a list of 10 for now, but we can consider expanding it if we'd like!
 true_covars <- c('student_PubAff', 'student_Newspaper', 'student_FamTalk', 
