@@ -275,7 +275,59 @@ Henderson/Chatfield propose using genetic matching to learn the best weights for
 # Remove post-treatment covariates
 
 # Randomly select features
+n_sims <- 1000 #LL note on 4/4: just doing 1000 for now, but we can up this and hopefully won't break
+ATT <- c()
+percent_improvement <- c()
+beats_threshold <- c()
+treatment = 'college'
+outcome = "student_ppnscal"
 
+for(sim in 1:n_sims){
+    number_of_covars <- sample(1:ncol(df_covars), 1)
+    #print(paste("covar number:", number_of_covars))
+    vars_index <- sample(1:ncol(df_covars), number_of_covars)
+    #print(paste("vars index:", vars_index))
+    sample_covars <- df_covars %>% select(vars_index)
+    #print(paste("samplecols:", ncol(sample_covars)))
+    covar_names <- colnames(sample_covars)
+
+    ps_formula <- as.formula(
+        paste(treatment, paste(covar_names, collapse = " + "), sep = " ~ "))
+
+    match_out_mahal_full <- matchit(ps_formula, data = all_data, method = 'full', distance = 'mahalanobis',
+                        estimand = 'ATT')
+    
+    full_summary <- summary(match_out_mahal_full)
+    
+    #calculate ATT
+    match_data_mahal <- match.data(match_out_mahal_full)
+    lm_formula <- as.formula(
+        paste(outcome,  paste(treatment, paste(covar_names, collapse = " + "), sep = " + "), 
+            sep = " ~ "))
+    
+    fit_mahal <- lm(lm_formula, data = match_data_mahal, weights = weights)
+    lm_mahal <- summary(fit_mahal)
+    ATT_mahal <- lm_mahal$coefficients[treatment, "Estimate"]
+
+    ATT <- append(ATT, ATT_mahal)
+
+    #calculate mean percent improvement
+    reduction_df <- as.data.frame.matrix(full_summary$reduction)
+    reduction_mean <- mean(reduction_df$`Std. Mean Diff.`)
+    percent_improvement <- append(percent_improvement, reduction_mean)
+
+    #calculate proportion that passed 0.1 threshold
+    thresh_count = 0
+    matched_df <- as.data.frame.matrix(full_summary$sum.matched)
+    for(val in matched_df$`Std. Mean Diff.`){
+        if(abs(val) <= 0.1){
+        thresh_count <- thresh_count + 1}
+    }
+    thresh_prop <- (thresh_count / nrow(matched_df))*100
+    
+    beats_threshold <- append(beats_threshold, thresh_prop)
+        
+    }
 
 
 
