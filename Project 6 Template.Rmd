@@ -44,12 +44,47 @@ Matching is usually used in observational studies to to approximate random assig
 
 ```{r}
 # Generate a vector that randomly assigns each unit to treatment/control
+n = nrow(ypsps)
+ypsps <- ypsps %>% 
+    mutate(college_random = as.numeric(rbernoulli(n, p=0.5)))
 
 # Choose a baseline covariate (use dplyr for this)
+head(ypsps$student_Gen, 10) 
+#we selected student Gender 
 
 # Visualize the distribution by treatment/control (ggplot)
+ggplot(ypsps, aes(x = student_Gen, fill = factor(college_random))) + 
+  geom_bar() +
+  facet_grid(college_random~.) + 
+  labs(title = "Distribution of Gender among College Attendees vs Non-College Attendees", fill = "college_random\n")
+
+chisq.test(table(ypsps$college_random, ypsps$student_Gen)) 
 
 # Simulate this 10,000 times (monte carlo simulation - see R Refresher for a hint)
+gender1 <- list() #empty vector for average treatment given Gender == 1 
+gender0 <- list() #empty vector for average treatment given Gender == 0 
+iter = 10000
+for (i in 1:iter){
+    ypsps_sim <- ypsps %>% mutate(college_random = as.numeric(rbernoulli(n, p=0.5)))
+    Y0 <- mean(ypsps_sim$college_random | ypsps_sim$student_Gen==0) #return mean of college attendance given Gender==0
+    Y1 <- mean(ypsps_sim$college_random | ypsps_sim$student_Gen==1) #returns mean of college attendance given Gender ==1
+    gender1 <- c(gender1, Y1) #store into empty vector 
+    gender0 <- c(gender0, Y0) #store into empty vector for t
+}
+
+#Visualize distribution of gender across college attendance for 10,000 simulations
+#unlist
+college_gender1 <- as.numeric(unlist(gender1))
+college_gender0 <- as.numeric(unlist(gender0))
+#save into a dataframe and bind
+college_gender1_df <- data.frame(college_gender1)
+college_gender0_df <- data.frame(college_gender0)
+distribution <- as.data.frame(cbind(college_gender0, college_gender1))
+
+#plot the distribution
+ggplot(distribution, aes(x, fill = ))
+           + geom_density(alpha=.5)
+  labs(title = "Distribution of Gender among College Attendees vs Non-College Attendees - 10,000 Simulations")
 ```
 
 ## Questions
@@ -58,6 +93,8 @@ Matching is usually used in observational studies to to approximate random assig
 \end{enumerate}
 
 \textbf{Your Answer}: 
+   - We see fairly balanced distribution across genders, i.e. that college attendance was fairly similar between men and women.  
+    - There could be an imbalance of treatment assignment and baseline covariates due to just random chance. Also depending on how many baseline covariates you have in your analysis, there might not just be enough people in the combinations of those covariates to balance equally across treatment assignment. In other words, as you increase number of strata (number of covariates to balance across treatment groups), the chance of empty or infrequently filled strata also increases.
 
 # Propensity Score Matching
 
