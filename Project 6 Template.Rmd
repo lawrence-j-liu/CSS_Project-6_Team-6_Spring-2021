@@ -196,7 +196,7 @@ all_data <-ypsps_preTreat %>% drop_na()
 
 set.seed(24)
 
-n_sims <- 1000 #LL note on 3/29: just doing 1000 for now because it always breaks at some point at 10k 
+n_sims <- 5000 #LL note on 3/29: just doing 1000 for now because it always breaks at some point at 10k 
 #but haven't been able to debug yet
 ATT <- c()
 percent_improvement <- c()
@@ -231,8 +231,7 @@ for(sim in 1:n_sims){
     lm_NN <- summary(fit_NN)
     ATT_NN <- lm_NN$coefficients[treatment, "Estimate"]
 
-    ATT <- as.data.frame(append(ATT, ATT_NN))
-
+    ATT <- append(ATT, ATT_NN)
     #calculate mean percent improvement
     reduction_df <- as.data.frame.matrix(NN_summary$reduction)
     reduction_mean <- mean(reduction_df$`Std. Mean Diff.`)
@@ -247,14 +246,22 @@ for(sim in 1:n_sims){
     }
     thresh_prop <- (thresh_count / nrow(matched_df))*100
     
-    beats_threshold <- as.data.frame(append(beats_threshold, thresh_prop))
+    beats_threshold <-append(beats_threshold, thresh_prop)
         
     }
-    
-ATT <- rename(ATT, attnn = "append(ATT, ATT_NN)")
+```
+
+
+```{r message=FALSE}
+
+
+ATT <- as.data.frame(ATT)
+
+ATT <- rename(ATT, attnn = "ATT")
 ATT <- tibble::rowid_to_column(ATT, "ID")
 
-beats_threshold <- rename(beats_threshold, thresbt = "append(beats_threshold, thresh_prop)")
+beats_threshold<- as.data.frame(beats_threshold)
+colnames(beats_threshold) <- cbind("thresbt")
 
 beats_threshold <- tibble::rowid_to_column(beats_threshold, "ID")
 
@@ -355,7 +362,7 @@ Henderson/Chatfield propose using genetic matching to learn the best weights for
 # Remove post-treatment covariates
 
 # Randomly select features
-n_sims <- 1000 #LL note on 4/4: just doing 1000 for now, but we can up this and hopefully won't break
+n_sims <- 5000 #LL note on 4/4: just doing 1000 for now, but we can up this and hopefully won't break
 ATTam <- c()
 percent_improvements <- c()
 beats_thresholds <- c()
@@ -393,12 +400,12 @@ for(sim in 1:n_sims){
     lm_mahal <- summary(fit_mahal)
     ATT_mahal <- lm_mahal$coefficients[treatment, "Estimate"]
 
-    ATTam <- append(ATT, ATT_mahal)
+    ATTam <- append(ATTam, ATT_mahal)
 
     #calculate mean percent improvement
     reduction_df <- as.data.frame.matrix(full_summary$reduction)
     reduction_mean <- mean(reduction_df$`Std. Mean Diff.`)
-    percent_improvements <- as.data.frame(append(percent_improvement, reduction_mean))
+    percent_improvements <- append(percent_improvement, reduction_mean)
 
     #calculate proportion that passed 0.1 threshold
     thresh_count = 0
@@ -407,49 +414,111 @@ for(sim in 1:n_sims){
         if(abs(val) <= 0.1){
         thresh_count <- thresh_count + 1}
     }
-    threshs_props <- (thresh_count / nrow(matched_df2))*100
+    thresh_props <- (thresh_count / nrow(matched_df2))*100
     
-    beats_thresholds <- append(beats_thresholds, thresh_prop)
+    beats_thresholds <- append(beats_thresholds, thresh_props)
         
     }
+```
 
+
+```{r}
+# Plot ATT v. proportion
+
+ATTam <- as.data.frame(ATTam)
+colnames(ATTam) <- cbind("attamhl")
+ATTam <- tibble::rowid_to_column(ATTam, "ID")
+
+
+beats_thresholds <- as.data.frame(beats_thresholds)
+colnames(beats_thresholds) <- cbind("beats_am")
+beats_thresholds <- tibble::rowid_to_column(beats_thresholds, "ID")
 
 # Plot ATT v. proportion
 
-ATTm <- rename(ATT, attnn = "append(ATT, ATT_NN)")
-ATTm <- tibble::rowid_to_column(ATT, "ID")
+mergedatt2 <- merge(x = ATTam, y = beats_thresholds, by="ID", all.x=TRUE)
 
-beats_thresholds <- rename(beats_thresholds, thresbt2 = "append(beats_threshold, thresh_prop)")
-
-beats_thresholds <- tibble::rowid_to_column(beats_threshold, "ID")
-
-
-# Plot ATT v. proportion
-
-mergedatt2 <- merge(x = ATTm, y = beats_threshold, by="ID", all.x=TRUE)
-
-ggplot(mergedatt2, aes(x = attnn, y = thresbt)) + 
+ggplot(mergedatt2, aes(x = attamhl, y = beats_am)) + 
   geom_point() +
   labs(x = "ATT", y = "Threshold") +
   stat_summary(fun.data= mean_cl_normal) + 
   geom_smooth(method='lm')
 
-
-
 # 10 random covariate balance plots (hint try gridExtra)
 # Note: ggplot objects are finnicky so ask for help if you're struggling to automatically create them; consider using functions!
 
 
+#Plot #1
+bal.plot(match_out_NN, var.mame="student_GovtOpinion")
+```
 
 
+```{r message=FALSE}
+#Plot #2
+
+bal.plot(match_out_NN, var.name="parent_FInc")
+```
+
+
+```{r message=FALSE}
+#Plot #3
+bal.plot(match_out_NN, var.name="student_Trust")
+```
+
+
+```{r message=FALSE}
+#Plot #4
+
+bal.plot(match_out_NN, var.name="student_TV")
+```
+
+
+```{r message=FALSE}
+#Plot #5
+bal.plot(match_out_NN, var.name="parent_Govt4All")
 
 ```
 
+
+```{r message=FALSE}
+#Plot #6
+bal.plot(match_out_NN, var.name="student_TV")
+
+```
+
+
+```{r message=FALSE}
+#plot #7
+bal.plot(match_out_NN, var.name="parent_EducW")
+```
+
+```{r message=FALSE}
+Plot #8
+bal.plot(match_out_NN, var.name="parent_GovtSmart")
+```
+
+
+```{r}
+#Plot #9
+bal.plot(match_out_NN, var.name="student_GPA")
+```
+
+#Plot #9
+```{r}
+bal.plot(match_out_NN, var.name= "student_FamTalk")
+```
+
+
+
 ```{r}
 # Visualization for distributions of percent improvement
-percent_improvements <- rename(percent_improvements, prcimp = "append(percent_improvement, reduction_mean)")
 
-percent_improvements %>% ggplot(aes(prcimp)) +
+percent_improvements <- as.data.frame(percent_improvements )
+colnames(percent_improvements ) <- cbind("pct_am")
+percent_improvements  <- tibble::rowid_to_column(percent_improvements, "ID")
+
+
+percent_improvements %>% ggplot(aes(pct_am)) +
          geom_histogram(binwidth = 1, fill = "blue", col = "blue") +
          xlab("Percent Improvement Distribution") + 
          ggtitle("Histogram")
