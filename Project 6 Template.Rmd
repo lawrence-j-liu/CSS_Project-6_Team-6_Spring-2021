@@ -287,27 +287,26 @@ bal.plot(match_out_NN, var.mame="student_GovtOpinion")
 
 ```{r message=FALSE}
 #Plot #2
-
 bal.plot(match_out_NN, var.name="parent_FInc")
 ```
 
 
 ```{r message=FALSE}
 #Plot #3
-bal.plot(match_out_NN, var.name="student_Trust")
+bal.plot(match_out_NN, var.name="parent_Money")
 ```
 
 
 ```{r message=FALSE}
 #Plot #4
 
-bal.plot(match_out_NN, var.name="student_TV")
+bal.plot(match_out_NN, var.name="student_Cynic")
 ```
 
 
 ```{r message=FALSE}
 #Plot #5
-bal.plot(match_out_NN, var.name="parent_Govt4All")
+bal.plot(match_out_NN, var.name="parent_InfClub")
 
 ```
 
@@ -325,7 +324,7 @@ bal.plot(match_out_NN, var.name="parent_EducW")
 ```
 
 ```{r message=FALSE}
-Plot #8
+#Plot #8
 bal.plot(match_out_NN, var.name="parent_GovtSmart")
 ```
 
@@ -335,7 +334,7 @@ bal.plot(match_out_NN, var.name="parent_GovtSmart")
 bal.plot(match_out_NN, var.name="student_GPA")
 ```
 
-#Plot #9
+#Plot #10
 ```{r}
 bal.plot(match_out_NN, var.name= "student_FamTalk")
 ```
@@ -347,9 +346,9 @@ bal.plot(match_out_NN, var.name= "student_FamTalk")
     \item \textbf{How many simulations resulted in models with a higher proportion of balanced covariates? Do you have any concerns about this?}
     \item \textbf{Your Answer}:
     \item \textbf{Analyze the distribution of the ATTs. Do you have any concerns about this distribution?}
-    \item \textbf{Your Answer:}
+    \item \textbf{Your Answer:} We are not quite sure what the ATT distribution here is telling us about the threshold, even when we elected to place in a regression line, it is still not clear, at least in this dataset, what the relationship is between the ATT distribution and the covariates that make it above the .1 mean difference cutoff. 
     \item \textbf{Do your 10 randomly chosen covariate balance plots produce similar numbers on the same covariates? Is it a concern if they do not?}
-    \item \textbf{Your Answer:}
+    \item \textbf{Your Answer:} The 10 randomly chosen covariates actually seem a lot more reasonable because they distribibution of the covariate among those who are in the treated vs. the non-treated seems a lot more balanaced. This is even more concerning to us given that the ATT and threshold distribution make even less sense after looking at these 10 random covariates. 
 \end{enumerate}
 
 # Matching Algorithm of Your Choice
