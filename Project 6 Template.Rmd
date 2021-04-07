@@ -196,7 +196,7 @@ all_data <-ypsps_preTreat %>% drop_na()
 
 set.seed(24)
 
-n_sims <- 5000 #LL note on 3/29: just doing 1000 for now because it always breaks at some point at 10k 
+n_sims <- 2000 #LL note on 3/29: just doing 1000 for now because it always breaks at some point at 10k 
 #but haven't been able to debug yet
 ATT <- c()
 percent_improvement <- c()
@@ -253,8 +253,6 @@ for(sim in 1:n_sims){
 
 
 ```{r message=FALSE}
-
-
 ATT <- as.data.frame(ATT)
 
 ATT <- rename(ATT, attnn = "ATT")
@@ -264,8 +262,10 @@ beats_threshold<- as.data.frame(beats_threshold)
 colnames(beats_threshold) <- cbind("thresbt")
 
 beats_threshold <- tibble::rowid_to_column(beats_threshold, "ID")
+```
 
 
+```{r message=FALSE}
 # Plot ATT v. proportion
 
 mergedatt <- merge(x = ATT, y = beats_threshold, by="ID", all.x=TRUE)
@@ -287,7 +287,7 @@ bal.plot(match_out_NN, var.mame="student_GovtOpinion")
 
 ```{r message=FALSE}
 #Plot #2
-bal.plot(match_out_NN, var.name="parent_FInc")
+bal.plot(match_out_NN, var.name="parent_GovtOpinion")
 ```
 
 
@@ -313,25 +313,25 @@ bal.plot(match_out_NN, var.name="parent_InfClub")
 
 ```{r message=FALSE}
 #Plot #6
-bal.plot(match_out_NN, var.name="student_TV")
+bal.plot(match_out_NN, var.name="student_FamTalk")
 
 ```
 
 
 ```{r message=FALSE}
 #plot #7
-bal.plot(match_out_NN, var.name="parent_EducW")
+bal.plot(match_out_NN, var.name="parent_WinArg")
 ```
 
 ```{r message=FALSE}
 #Plot #8
-bal.plot(match_out_NN, var.name="parent_GovtSmart")
+bal.plot(match_out_NN, var.name="parent_TrGovt")
 ```
 
 
 ```{r}
 #Plot #9
-bal.plot(match_out_NN, var.name="student_GPA")
+bal.plot(match_out_NN, var.name="student_GovtCrook")
 ```
 
 #Plot #10
@@ -361,7 +361,7 @@ Henderson/Chatfield propose using genetic matching to learn the best weights for
 # Remove post-treatment covariates
 
 # Randomly select features
-n_sims <- 5000 #LL note on 4/4: just doing 1000 for now, but we can up this and hopefully won't break
+n_sims <- 2000 #LL note on 4/4: just doing 1000 for now, but we can up this and hopefully won't break
 ATTam <- c()
 percent_improvements <- c()
 beats_thresholds <- c()
@@ -446,66 +446,19 @@ ggplot(mergedatt2, aes(x = attamhl, y = beats_am)) +
 # 10 random covariate balance plots (hint try gridExtra)
 # Note: ggplot objects are finnicky so ask for help if you're struggling to automatically create them; consider using functions!
 
-
+##For some reason, our end result only had two covariates so we could only plot two graphs 
 #Plot #1
-bal.plot(match_out_NN, var.mame="student_GovtOpinion")
+bal.plot(match_out_mahal_full, var.mame="student_GPA")
 ```
 
 
 ```{r message=FALSE}
 #Plot #2
 
-bal.plot(match_out_NN, var.name="parent_FInc")
+bal.plot(match_out_mahal_full, var.name="student_SchOfficer")
 ```
 
 
-```{r message=FALSE}
-#Plot #3
-bal.plot(match_out_NN, var.name="student_Trust")
-```
-
-
-```{r message=FALSE}
-#Plot #4
-
-bal.plot(match_out_NN, var.name="student_TV")
-```
-
-
-```{r message=FALSE}
-#Plot #5
-bal.plot(match_out_NN, var.name="parent_Govt4All")
-
-```
-
-
-```{r message=FALSE}
-#Plot #6
-bal.plot(match_out_NN, var.name="student_TV")
-
-```
-
-
-```{r message=FALSE}
-#plot #7
-bal.plot(match_out_NN, var.name="parent_EducW")
-```
-
-```{r message=FALSE}
-Plot #8
-bal.plot(match_out_NN, var.name="parent_GovtSmart")
-```
-
-
-```{r}
-#Plot #9
-bal.plot(match_out_NN, var.name="student_GPA")
-```
-
-#Plot #9
-```{r}
-bal.plot(match_out_NN, var.name= "student_FamTalk")
-```
 
 
 
