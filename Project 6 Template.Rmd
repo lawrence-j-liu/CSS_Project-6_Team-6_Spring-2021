@@ -120,7 +120,7 @@ outcome_var_components <- c("student_vote", "student_meeting", "student_button",
                             "student_other")
 ypsps_preTreat <- ypsps %>% select(-postTreat_var_indices) %>%  select(-outcome_var_components) 
 
-#LL Note: just went w/ a list of 10 for now, but we can consider expanding it if we'd like!
+#list of 10 covariates
 true_covars <- c('student_PubAff', 'student_Newspaper', 'student_FamTalk', 
                  'student_GovtOpinion', 'student_Govt4All', 
                  'parent_Vote', 'parent_Rally', 'parent_PolClub', 
@@ -164,16 +164,11 @@ summary(fit_NN)
 
 
 # Plot the balance for the top 10 covariates
-# <- data.frame(NN_summary$sum.matched)
-#NN_df <- tibble::rownames_to_column(NN_df, "covars")
-#NN_df <- NN_df %>% mutate(abs_mean_diff = abs(NN_df$Std..Mean.Diff.))  
-#arrange(NN_df, abs_mean_diff)
-
 plot(summary(match_out_NN), var.order = 'unmatched', threshold = .1)
 
 # Report the overall balance and the proportion of covariates that meet the balance threshold
 ```
-At least for these ten variables, it appears that the overall balance is worse post-matching on each of the ten covariates chosen. Only one out of the ten covariates meetes the balance threshhold here. 
+At least for these ten variables, it appears that the overall balance is worse post-matching on each of the ten covariates chosen. Only one out of the ten covariates meets the balance threshold here. 
 
 ## Simulations
 Henderson/Chatfield argue that an improperly specified propensity score model can actually \textit{increase} the bias of the estimate. To demonstrate this, they simulate 800,000 different propensity score models by choosing different permutations of covariates. To investigate their claim, do the following:
@@ -196,21 +191,18 @@ all_data <-ypsps_preTreat %>% drop_na()
 
 set.seed(24)
 
-n_sims <- 2000 #LL note on 3/29: just doing 1000 for now because it always breaks at some point at 10k 
-#but haven't been able to debug yet
-ATT <- c()
-percent_improvement <- c()
-beats_threshold <- c()
+n_sims <- 2000 #sims count kept relatively low because the sim breaks at a fairly high number for reasons
+#still unknown :(
+ATT <- c() #vector for ATT simulation runs
+percent_improvement <- c() #vector to hold percent improvement of each sim
+beats_threshold <- c() #vector to hold proportion that beat .1 threshold in each sim
 treatment = 'college'
 outcome = "student_ppnscal"
 
 for(sim in 1:n_sims){
     number_of_covars <- sample(1:ncol(df_covars), 1)
-    #print(paste("covar number:", number_of_covars))
     vars_index <- sample(1:ncol(df_covars), number_of_covars)
-    #print(paste("vars index:", vars_index))
     sample_covars <- df_covars %>% select(vars_index)
-    #print(paste("samplecols:", ncol(sample_covars)))
     covar_names <- colnames(sample_covars)
 
     ps_formula <- as.formula(
@@ -232,6 +224,7 @@ for(sim in 1:n_sims){
     ATT_NN <- lm_NN$coefficients[treatment, "Estimate"]
 
     ATT <- append(ATT, ATT_NN)
+    
     #calculate mean percent improvement
     reduction_df <- as.data.frame.matrix(NN_summary$reduction)
     reduction_mean <- mean(reduction_df$`Std. Mean Diff.`)
@@ -247,7 +240,6 @@ for(sim in 1:n_sims){
     thresh_prop <- (thresh_count / nrow(matched_df))*100
     
     beats_threshold <-append(beats_threshold, thresh_prop)
-        
     }
 ```
 
@@ -278,7 +270,7 @@ ggplot(mergedatt, aes(x = attnn, y = thresbt)) +
 
 
 # 10 random covariate balance plots (hint try gridExtra)
-# Note: ggplot objects are finnicky so ask for help if you're struggling to automatically create them; consider using functions!
+
 
 #Plot #1
 bal.plot(match_out_NN, var.mame="student_GovtOpinion")
@@ -346,9 +338,9 @@ bal.plot(match_out_NN, var.name= "student_FamTalk")
     \item \textbf{How many simulations resulted in models with a higher proportion of balanced covariates? Do you have any concerns about this?}
     \item \textbf{Your Answer}:
     \item \textbf{Analyze the distribution of the ATTs. Do you have any concerns about this distribution?}
-    \item \textbf{Your Answer:} We are not quite sure what the ATT distribution here is telling us about the threshold, even when we elected to place in a regression line, it is still not clear, at least in this dataset, what the relationship is between the ATT distribution and the covariates that make it above the .1 mean difference cutoff. 
+    \item \textbf{Your Answer:} We are not quite sure what the ATT distribution here is telling us about the threshold; even when we elected to place in a regression line, it is still not clear, at least in this dataset, what the relationship is between the ATT distribution and the covariates that make it above the .1 mean difference cutoff. 
     \item \textbf{Do your 10 randomly chosen covariate balance plots produce similar numbers on the same covariates? Is it a concern if they do not?}
-    \item \textbf{Your Answer:} The 10 randomly chosen covariates actually seem a lot more reasonable because they distribibution of the covariate among those who are in the treated vs. the non-treated seems a lot more balanaced. This is even more concerning to us given that the ATT and threshold distribution make even less sense after looking at these 10 random covariates. 
+    \item \textbf{Your Answer:} The 10 randomly chosen covariates actually seem a lot more reasonable because the distribution of the covariate among those who are in the treated vs. the non-treated seems a lot more balanced. This is even more concerning to us given that the ATT and threshold distribution make even less sense after looking at these 10 random covariates. 
 \end{enumerate}
 
 # Matching Algorithm of Your Choice
@@ -361,10 +353,10 @@ Henderson/Chatfield propose using genetic matching to learn the best weights for
 # Remove post-treatment covariates
 
 # Randomly select features
-n_sims <- 2000 #LL note on 4/4: just doing 1000 for now, but we can up this and hopefully won't break
-ATTam <- c()
-percent_improvements <- c()
-beats_thresholds <- c()
+n_sims <- 2000 
+ATTam <- c() #vector for ATT simulation runs
+percent_improvements <- c() #vector to hold percent improvement of each sim
+beats_thresholds <- c() #vector to hold proportion that beat .1 threshold in each sim
 treatment2 = 'college'
 outcome2 = "student_ppnscal"
 
@@ -372,11 +364,8 @@ outcome2 = "student_ppnscal"
 
 for(sim in 1:n_sims){
     number_of_covars <- sample(1:ncol(df_covars), 1)
-    #print(paste("covar number:", number_of_covars))
     vars_index <- sample(1:ncol(df_covars), number_of_covars)
-    #print(paste("vars index:", vars_index))
     sample_covars <- df_covars %>% select(vars_index)
-    #print(paste("samplecols:", ncol(sample_covars)))
     covar_names <- colnames(sample_covars)
 
     ps_formula <- as.formula(
@@ -484,8 +473,8 @@ percent_improvements %>% ggplot(aes(pct_am)) +
     \item \textbf{Does your alternative matching method have more runs with higher proportions of balanced covariates?}
     \item \textbf{Your Answer:} Yes, actually! It seems like there's a much clearer relationship between ATT and threshold as well. 
     \item \textbf{Use a visualization to examine the change in the distribution of the percent improvement in balance in propensity score matching vs. the distribution of the percent improvement in balance in your new method. Which did better? Analyze the results in 1-2 sentences.}
-    \item \textbf{Your Answer:}
-\end{enumerate} Right off the bat, it seems like our new method with full matching and mahalanobis distance calculations did much better. My sense from observing the trends in the data and from discussions in class, matching using nearest neighbors has a huge pitfall insofar as it is really hard to do precise calculations in a multivariate context given that it's only dealing with Euclidean space. This means that there is lots of room for error in making approrpriate unit changes and making sense of distances between incongruous variables. Mahalanobis takes into account the sample's covariance and uses covariance to help standardize the distances between a point P and it's place in the Distribution to which that point P belongs to. Thus, it makes intuitive sense to me why Mahalanobis makes for better estimates given that it produces much better matches relative to the nearest neigbhor approach in our first matching algorithm. 
+    \item \textbf{Your Answer:} Right off the bat, it seems like our new method with full matching and mahalanobis distance calculations did much better. Our sense from observing the trends in the data and from discussions in class, matching using nearest neighbors has a huge pitfall insofar as it is really hard to do precise calculations in a multivariate context given that it's only dealing with Euclidean space. This means that there is lots of room for error in making appropriate unit changes and making sense of distances between incongruous variables. Mahalanobis takes into account the sample's covariance and uses covariance to help standardize the distances between a point P and it's place in the Distribution to which that point P belongs to. Thus, it makes intuitive sense why Mahalanobis makes for better estimates given that it produces much better matches relative to the nearest neighbor approach in our first matching algorithm. 
+\end{enumerate} 
 
 \textbf{Optional:} Looking ahead to the discussion questions, you may choose to model the propensity score using an algorithm other than logistic regression and perform these simulations again, if you wish to explore the second discussion question further.
 
@@ -493,7 +482,7 @@ percent_improvements %>% ggplot(aes(pct_am)) +
 
 \begin{enumerate}
     \item Why might it be a good idea to do matching even if we have a randomized or as-if-random design?
-    \item \textbf{Your Answer:} As-if-random designs are still subject to selection bias, thus matching helps with making sure that we are not comparing treatment and control groups that have observed (and ideally unobserved) characteristics. However,, even in randomize design trials, matching might help with validity and increasing of study power. These matches can protected against chance imbalances in covariate distributions and improves credibility overall. We could imagine that even if all things are kept equal, age distribution might be a confounder in randomized clinical trials. 
+    \item \textbf{Your Answer:} As-if-random designs are still subject to selection bias and we cannot be 100% sure about identification, so matching helps to make sure that we are not comparing treatment and control groups that have different observed characteristics. Even in randomized design trials, matching might help with validity and increasing of study power and precision of estimates. Given that randomization ensures balance in expectation over many trials, it's possible that one sample will give us a lot of imbalance between the treated and controls. Matching can protect against chance imbalances in covariate distributions and improves credibility overall. We could imagine that even if all things are kept equal, age distribution might be a confounder in randomized clinical trials. 
     \item The standard way of estimating the propensity score is using a logistic regression to estimate probability of treatment. Given what we know about the curse of dimensionality, do you think there might be advantages to using other machine learning algorithms (decision trees, bagging/boosting forests, ensembles, etc.) to estimate propensity scores instead?
-    \item \textbf{Your Answer:} Logistic regression performs poorly when you have models that have non-linear relationships. Thus, ensemble methods (e.g., bagging/boosting forests) could provide bias reduction and more consistent confidence interval coverage.It is also the case that models like logistic regression require assumptions that are asy to violation about interactions (between variables) and distributions of variables. Decision trees, for example, seem like  a logical step in estimating propensity scores insofar as, they are able to handle various types of data including categorical, continuous, and ordinal data. Interactions and non-linear relationships are easily modeled also as a result of the natural cleavages that stem from the design of decision trees. 
+    \item \textbf{Your Answer:} Logistic regression performs poorly when you have models that have non-linear relationships. Thus, ensemble methods (e.g., bagging/boosting forests) could provide bias reduction and more consistent confidence interval coverage. It is also the case that models like logistic regression require assumptions that are easy to violate about interactions (between variables) and distributions of variables. Decision trees, for example, seem like a logical step in estimating propensity scores insofar as they are better able to handle various types of data including categorical, continuous, and ordinal data. Interactions and non-linear relationships are more easily modeled also as a result of the natural cleavages that stem from the design of decision trees. 
 \end{enumerate}
