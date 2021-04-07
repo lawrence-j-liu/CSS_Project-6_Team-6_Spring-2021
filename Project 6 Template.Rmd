@@ -1,5 +1,5 @@
 ---
-title: 'Project 6: Randomization and Matching'
+title: 'Project 6: Randomization and Matching by Lawrence Liu, Mahader Tamene, and Jose Aveldanes'
 output: pdf_document
 ---
 
@@ -262,15 +262,21 @@ beats_threshold <- tibble::rowid_to_column(beats_threshold, "ID")
 
 mergedatt <- merge(x = ATT, y = beats_threshold, by="ID", all.x=TRUE)
 
-ggplot(mergedatt, aes(x = attnn, y = thresbt)) + 
+ggplot(mergedatt, aes(x = thresbt, y = attnn)) + 
   geom_point() +
-  labs(x = "ATT", y = "Threshold") +
-  stat_summary(fun.data= mean_cl_normal) + 
-  geom_smooth(method='lm')
+  labs(x = "Threshold", y = "ATT") #+
+  #stat_summary(fun.data= mean_cl_normal) + 
+ # geom_smooth(method='lm')
 
+#filter mergedatt 
+
+newmq <- filter(mergedatt, thresbt > .1) 
+view(newmq)
+
+##this reveals that 1,861 passed the threshold out of the 2000 simulations 
 
 # 10 random covariate balance plots (hint try gridExtra)
-
+# Note: ggplot objects are finnicky so ask for help if you're struggling to automatically create them; consider using functions!
 
 #Plot #1
 bal.plot(match_out_NN, var.mame="student_GovtOpinion")
@@ -321,6 +327,7 @@ bal.plot(match_out_NN, var.name="parent_TrGovt")
 ```
 
 
+
 ```{r}
 #Plot #9
 bal.plot(match_out_NN, var.name="student_GovtCrook")
@@ -331,12 +338,11 @@ bal.plot(match_out_NN, var.name="student_GovtCrook")
 bal.plot(match_out_NN, var.name= "student_FamTalk")
 ```
 
-
 ## Questions
 
 \begin{enumerate}
     \item \textbf{How many simulations resulted in models with a higher proportion of balanced covariates? Do you have any concerns about this?}
-    \item \textbf{Your Answer}:
+    \item \textbf{Your Answer}: Approximately 1861 simulations resulted in models with a higher proportion of balanced covariates. This seems like way too high of a proportion for balanced covariates, if most of the the models resulted in a higher proportion of covariates, are we really capturing balance here? Our concern is that this model is misspecified and this could either be a result of the lack of simulations possible given R Studio's power on our local machines or misspeficiation that comes as a result of using this specific matching algorithm. 
     \item \textbf{Analyze the distribution of the ATTs. Do you have any concerns about this distribution?}
     \item \textbf{Your Answer:} We are not quite sure what the ATT distribution here is telling us about the threshold; even when we elected to place in a regression line, it is still not clear, at least in this dataset, what the relationship is between the ATT distribution and the covariates that make it above the .1 mean difference cutoff. 
     \item \textbf{Do your 10 randomly chosen covariate balance plots produce similar numbers on the same covariates? Is it a concern if they do not?}
@@ -426,15 +432,20 @@ beats_thresholds <- tibble::rowid_to_column(beats_thresholds, "ID")
 
 mergedatt2 <- merge(x = ATTam, y = beats_thresholds, by="ID", all.x=TRUE)
 
-ggplot(mergedatt2, aes(x = attamhl, y = beats_am)) + 
+ggplot(mergedatt2, aes(x = beats_am, y = attamhl)) + 
   geom_point() +
-  labs(x = "ATT", y = "Threshold") +
-  stat_summary(fun.data= mean_cl_normal) + 
-  geom_smooth(method='lm')
+  labs(x = "Threshold", y = "ATT") 
+
+#+
+  #stat_summary(fun.data= mean_cl_normal) + 
+  #geom_smooth(method='lm')
 
 # 10 random covariate balance plots (hint try gridExtra)
 # Note: ggplot objects are finnicky so ask for help if you're struggling to automatically create them; consider using functions!
+```
 
+
+```{r}
 ##For some reason, our end result only had two covariates so we could only plot two graphs 
 #Plot #1
 bal.plot(match_out_mahal_full, var.mame="student_GPA")
